@@ -1,4 +1,4 @@
-🏥 # Automated Patient Appointment Booking Workflow
+# Automated Patient Appointment Booking Workflow
 This n8n workflow automates the entire process of scheduling patient appointments via email. It leverages Generative AI (OpenAI) to understand natural language requests, checks Google Calendar for real-time availability, and handles booking, confirmation, or negotiation of time slots automatically.
 
 (Replace this path with your actual workflow screenshot)
