@@ -1,0 +1,590 @@
+{
+  "name": "Automated Patient Appointment Booking and Scheduling via Email",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "3d7c564f-b22a-4340-a3b4-b5579ef984d8",
+      "name": "When New Email Received",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1952,
+        320
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tcsfnhfEkx2pkdAG",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f78ec4c-43de-45b3-922d-2b5a8c5d0d77",
+              "name": "Name",
+              "value": "={{ $json.from.name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-1",
+              "name": "doctorCalendarId",
+              "value": "<__PLACEHOLDER_VALUE__Doctor's Google Calendar ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "appointmentDuration",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "workingHoursStart",
+              "value": "09:00",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "workingHoursEnd",
+              "value": "17:00",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "fca23810-9ad5-492a-a930-c0854a47aca6",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1728,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"isAppointmentRequest\": {\n      \"type\": \"boolean\"\n    },\n    \"patientName\": {\n      \"type\": \"string\"\n    },\n    \"patientEmail\": {\n      \"type\": \"string\"\n    },\n    \"requestedDate\": {\n      \"type\": \"string\"\n    },\n    \"requestedTime\": {\n      \"type\": \"string\"\n    },\n    \"hasDateAndTime\": {\n      \"type\": \"boolean\"\n    },\n    \"emailSubject\": {\n      \"type\": \"string\"\n    },\n    \"emailBody\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+      },
+      "id": "0463477c-1706-4b55-b606-76cb2c68e95b",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1360,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.output.isAppointmentRequest }} means",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "51821705-e320-48f9-aba0-e9f9db4ab3ed",
+      "name": "Is Appointment Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1152,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.output.hasDateAndTime }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "02368082-ba79-4cad-aab3-835a3b9e121b",
+      "name": "Has Date and Time?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -928,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.doctorCalendarId }}"
+        },
+        "limit": 100,
+        "timeMin": "={{ $json.output.requestedDate }}T{{ $json.output.requestedTime }}:00",
+        "timeMax": "={{ $json.output.requestedDate }}T{{ $json.output.requestedTime.split(':')[0] }}:{{ String(Number($json.output.requestedTime.split(':')[1]) + Number($('Workflow Configuration').first().json.appointmentDuration)).padStart(2, '0') }}:00",
+        "options": {}
+      },
+      "id": "dde9c8f1-ed95-456b-9734-3d7b3d04cac3",
+      "name": "Check Calendar Availability",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -704,
+        128
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GfjzabrApkaJLafJ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Check Calendar Availability').item.json }}",
+              "operator": {
+                "type": "object",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b38dc34e-5521-432f-994f-071e034599bb",
+      "name": "Is Time Slot Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -480,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.doctorCalendarId }}"
+        },
+        "start": "={{ $('Analyze Email and Extract Details').first().json.output.requestedDate }}T{{ $('Analyze Email and Extract Details').first().json.output.requestedTime }}:00",
+        "end": "={{ $('Analyze Email and Extract Details').first().json.output.requestedDate }}T{{ $('Analyze Email and Extract Details').first().json.output.requestedTime.split(':')[0] }}:{{ String(Number($('Analyze Email and Extract Details').first().json.output.requestedTime.split(':')[1]) + Number($('Workflow Configuration').first().json.appointmentDuration)).padStart(2, '0') }}:00",
+        "additionalFields": {
+          "description": "=Patient: {{ $('Analyze Email and Extract Details').first().json.output.patientName }}\nEmail: {{ $('Analyze Email and Extract Details').first().json.output.patientEmail }}",
+          "summary": "=Appointment with {{ $('Analyze Email and Extract Details').first().json.output.patientName }}"
+        }
+      },
+      "id": "205a7d8f-d186-4a25-bf9e-70c62c528b4b",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        32
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GfjzabrApkaJLafJ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Analyze Email and Extract Details').first().json.output.patientEmail }}",
+        "subject": "=Appointment Confirmed - {{ $('Analyze Email and Extract Details').first().json.output.requestedDate }} at {{ $('Analyze Email and Extract Details').first().json.output.requestedTime }}",
+        "message": "=Dear {{ $('Analyze Email and Extract Details').first().json.output.patientName }},\n\nYour appointment has been successfully booked!\n\nDate: {{ $('Analyze Email and Extract Details').first().json.output.requestedDate }}\nTime: {{ $('Analyze Email and Extract Details').first().json.output.requestedTime }}\nDuration: {{ $('Workflow Configuration').first().json.appointmentDuration }} minutes\n\nPlease arrive 10 minutes early. If you need to reschedule or cancel, please contact us at least 24 hours in advance.\n\nBest regards,\nThe Medical Office",
+        "options": {}
+      },
+      "id": "11d785a9-8773-4af4-99a9-5c85ab176567",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        32
+      ],
+      "webhookId": "13cecde9-123d-497b-a20f-a75efdc997ce",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lQCHVR5UsEQPPAga",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.doctorCalendarId }}"
+        },
+        "options": {}
+      },
+      "id": "3778b0b8-5614-45f2-a7e5-889831ecc1d9",
+      "name": "Find Available Slots",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        224
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GfjzabrApkaJLafJ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "availableSlots",
+              "value": "=const workStart = $('Workflow Configuration').first().json.workingHoursStart;\nconst workEnd = $('Workflow Configuration').first().json.workingHoursEnd;\nconst appointmentDuration = $('Workflow Configuration').first().json.appointmentDuration;\nconst bookedEvents = $('Find Available Slots').all();\n\n// Parse working hours\nconst [startHour, startMin] = workStart.split(':').map(Number);\nconst [endHour, endMin] = workEnd.split(':').map(Number);\n\n// Helper function to convert 24-hour time to 12-hour format with AM/PM\nfunction formatTime12Hour(hour, min) {\n  const period = hour >= 12 ? 'PM' : 'AM';\n  const hour12 = hour % 12 || 12;\n  return `${hour12}:${String(min).padStart(2, '0')} ${period}`;\n}\n\n// Get the next 7 days\nconst today = new Date();\nconst slotsByDay = {};\n\nfor (let dayOffset = 0; dayOffset < 7; dayOffset++) {\n  const currentDate = new Date(today);\n  currentDate.setDate(today.getDate() + dayOffset);\n  const dateStr = currentDate.toISOString().split('T')[0];\n  const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });\n  \n  slotsByDay[dateStr] = {\n    dayName: dayName,\n    slots: []\n  };\n  \n  // Generate all possible time slots for this day\n  let currentHour = startHour;\n  let currentMin = startMin;\n  \n  while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {\n    const slotStart = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;\n    \n    // Check if this slot is booked\n    const slotDateTime = new Date(currentDate);\n    slotDateTime.setHours(currentHour, currentMin, 0, 0);\n    \n    const isBooked = bookedEvents.some(event => {\n      if (!event.json.start || !event.json.end) return false;\n      \n      const eventStart = new Date(event.json.start.dateTime || event.json.start.date);\n      const eventEnd = new Date(event.json.end.dateTime || event.json.end.date);\n      \n      return slotDateTime >= eventStart && slotDateTime < eventEnd;\n    });\n    \n    if (!isBooked) {\n      slotsByDay[dateStr].slots.push(formatTime12Hour(currentHour, currentMin));\n    }\n    \n    currentMin += appointmentDuration;\n    if (currentMin >= 60) {\n      currentHour += Math.floor(currentMin / 60);\n      currentMin = currentMin % 60;\n    }\n  }\n}\n\n// Format the output as a readable string\nlet formattedOutput = '';\nfor (const [date, data] of Object.entries(slotsByDay)) {\n  if (data.slots.length > 0) {\n    formattedOutput += `\\n${data.dayName}:\\n`;\n    formattedOutput += data.slots.join(', ') + '\\n';\n  }\n}\n\nif (formattedOutput === '') {\n  formattedOutput = 'No available slots in the next 7 days';\n}\n\nreturn formattedOutput.trim();",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "63b3ed7b-1831-42b7-bc61-7746948c869c",
+      "name": "Format Available Slots",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -32,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Analyze Email and Extract Details').first().json.output.patientEmail }}",
+        "subject": "Appointment Time Not Available - Alternative Slots",
+        "message": "=Dear {{ $('Analyze Email and Extract Details').first().json.output.patientName }},<br><br>\n\nThank you for your appointment request. Unfortunately, the time slot you requested ({{ $('Analyze Email and Extract Details').first().json.output.requestedDate }} at {{ $('Analyze Email and Extract Details').first().json.output.requestedTime }}) is not available.<br><br>\n\n<strong>Here are the available time slots for the next 7 days:</strong><br><br>\n\n<div style=\"background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace;\">\n{{ $json.availableSlots.replace(/\\n/g, '<br>') }}\n</div><br>\n\nPlease reply to this email with your preferred time slot from the list above, and we will confirm your appointment.<br><br>\n\nBest regards,<br>\nThe Medical Office",
+        "options": {}
+      },
+      "id": "9d4d007b-b4d3-4896-967c-c6007675cb60",
+      "name": "Send Alternative Slots Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        224
+      ],
+      "webhookId": "4b5e3c2a-0e08-4829-9c17-467e47e5873e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lQCHVR5UsEQPPAga",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Analyze Email and Extract Details').first().json.output.patientEmail }}",
+        "subject": "Appointment Request - Need More Information",
+        "message": "=Dear {{ $('Analyze Email and Extract Details').first().json.output.patientName }},\n\nThank you for your appointment request. To proceed with booking your appointment, we need the following information:\n\n- Preferred appointment date\n- Preferred appointment time\n\nPlease reply to this email with your preferred date and time, and we will check availability and confirm your appointment.\n\nBest regards,\nThe Medical Office",
+        "options": {}
+      },
+      "id": "6b0dfe4e-969e-45f9-b8ad-322c25d29206",
+      "name": "Request Clarification Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -704,
+        320
+      ],
+      "webhookId": "fe3b1abe-3b68-4849-be43-296201a15974",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lQCHVR5UsEQPPAga",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Analyze Email and Extract Details').first().json.output.patientEmail }}",
+        "subject": "Re: Your Email",
+        "message": "=Dear {{ $('Analyze Email and Extract Details').first().json.output.patientName }},\n\nThank you for your email. We have received your message.\n\nIf you would like to book an appointment, please reply with your preferred date and time, and we will be happy to assist you.\n\nBest regards,\nThe Medical Office",
+        "options": {}
+      },
+      "id": "20e111b1-ac4a-4667-8991-319183594f14",
+      "name": "Send Not Appointment Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -928,
+        416
+      ],
+      "webhookId": "5bcbbdb4-01df-4163-a29a-c98bb51462d3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lQCHVR5UsEQPPAga",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "e198b5b0-373f-4b9a-b4de-d2fd72ac6074",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1488,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.snippet }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI assistant that analyzes patient emails to detect appointment booking requests.\n\nYour task is to:\n1. Determine if the email is requesting to book a medical appointment\n2. Extract patient name from the email content or sender name\n3. Extract patient email address\n4. Extract requested appointment date (if mentioned)\n5. Extract requested appointment time (if mentioned)\n6. Determine if both date and time are clearly specified\n\nRules:\n- Set isAppointmentRequest to true only if the email clearly requests to book, schedule, or arrange an appointment\n- Extract dates in YYYY-MM-DD format when possible\n- Extract times in HH:MM format (24-hour) when possible\n- Set hasDateAndTime to true only if BOTH date and time are clearly specified\n- Use the sender email address if not mentioned in the body\n- If information is unclear or missing, set the corresponding field to empty string"
+        }
+      },
+      "id": "d0399e55-ff26-43ba-83d8-d22219581e2f",
+      "name": "Analyze Email and Extract Details",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1504,
+        320
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When New Email Received": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Analyze Email and Extract Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Analyze Email and Extract Details",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Appointment Request?": {
+      "main": [
+        [
+          {
+            "node": "Has Date and Time?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Not Appointment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Date and Time?": {
+      "main": [
+        [
+          {
+            "node": "Check Calendar Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Request Clarification Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Calendar Availability": {
+      "main": [
+        [
+          {
+            "node": "Is Time Slot Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Time Slot Available?": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Available Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Available Slots": {
+      "main": [
+        [
+          {
+            "node": "Format Available Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Available Slots": {
+      "main": [
+        [
+          {
+            "node": "Send Alternative Slots Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Email and Extract Details": {
+      "main": [
+        [
+          {
+            "node": "Is Appointment Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Email and Extract Details",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "bb51695f-d45f-45aa-9972-1d67d3642199",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "55ec3012ebca0abda2c6767ae2a9223e6fcbecf3530916bbe0d37c4ec13c0bda"
+  },
+  "id": "BDpbXJSFUEjGFJ01LtdvA",
+  "tags": []
+}
